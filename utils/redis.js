@@ -1,45 +1,50 @@
-// utils/redis.js
-
 import redis from 'redis';
+import { promisify } from 'util';
 
 class RedisClient {
     constructor() {
         this.client = redis.createClient();
+        this.connected = false;
 
-        // Gérer les erreurs du client Redis
-        this.client.on('error', (err) => {
-            console.error('Error: Redis client is not connected', err);
+        this.client.on('error', (err) => console.log(err));
+        this.client.on('connect', () => {
+            this.connected = true;
         });
     }
 
-    async isAlive() {
-        return new Promise((resolve) => {
-            this.client.ping('RedisServer', (error, result) => {
-                if (error) resolve(false);
-                resolve(result === 'RedisServer');
-            });
-        });
+    isAlive() {
+        return this.connected;
     }
 
     async get(key) {
-        return new Promise((resolve) => {
-            this.client.get(key, (error, result) => {
-                if (error) resolve(null);
-                resolve(result);
-            });
-        });
+        const getAsync = promisify(this.client.get).bind(this.client);
+        try {
+            const reply = await getAsync(key);
+            console.log(reply);
+            return reply;
+        } catch (err) {
+            console.log('Error:', err);
+            return null;
+        }
     }
 
     async set(key, value, duration) {
-        this.client.set(key, value);
-        this.client.expire(key, duration);
+        const setAsync = promisify(this.client.set).bind(this.client);
+        try {
+            await setAsync(key, value, 'EX', duration);
+        } catch (err) {
+            console.log('Error:', err);
+        }
     }
 
     async del(key) {
-        this.client.del(key);
+        const delAsync = promisify(this.client.del).bind(this.client);
+        try {
+            await delAsync(key);
+        } catch (err) {
+            console.log('Error:', err);
+        }
     }
 }
 
-// Créer une instance de RedisClient et l'exporter
-const redisClient = new RedisClient();
-export default redisClient;
+export default new RedisClient();
