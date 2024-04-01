@@ -1,50 +1,38 @@
-import redis from 'redis';
-import { promisify } from 'util';
+import { createClient } from 'redis';
 
 class RedisClient {
     constructor() {
-        this.client = redis.createClient();
-        this.connected = false;
+        this.client = createClient();
+        this.client.connect().catch(error => {
+            console.log(`Redis client not connected to the server: ${error.message}`);
+        });
 
-        this.client.on('error', (err) => console.log(err));
         this.client.on('connect', () => {
-            this.connected = true;
+            console.log('Redis client connected to the server');
+        });
+
+        this.client.on('error', (error) => {
+            console.log(`Redis client not connected to the server: ${error}`);
         });
     }
 
     isAlive() {
-        return this.connected;
+        return this.client.isOpen;
     }
 
     async get(key) {
-        const getAsync = promisify(this.client.get).bind(this.client);
-        try {
-            const reply = await getAsync(key);
-            console.log(reply);
-            return reply;
-        } catch (err) {
-            console.log('Error:', err);
-            return null;
-        }
+        return await this.client.get(key);
     }
 
     async set(key, value, duration) {
-        const setAsync = promisify(this.client.set).bind(this.client);
-        try {
-            await setAsync(key, value, 'EX', duration);
-        } catch (err) {
-            console.log('Error:', err);
-        }
+        await this.client.set(key, value, { EX: duration });
     }
 
     async del(key) {
-        const delAsync = promisify(this.client.del).bind(this.client);
-        try {
-            await delAsync(key);
-        } catch (err) {
-            console.log('Error:', err);
-        }
+        await this.client.del(key);
     }
 }
 
-export default new RedisClient();
+const redisClient = new RedisClient();
+
+export default redisClient;
