@@ -20,16 +20,16 @@ class RedisClient {
     return this.client.isOpen;
   }
 
-  get(key) {
+  async get(key) {
     return this.client.get(key);
   }
 
   async set(key, value, duration) {
-    return this.client.set(key, value, { EX: duration });
+    await this.client.set(key, value, { EX: duration });
   }
 
   async del(key) {
-    return this.client.del(key);
+    await this.client.del(key);
   }
 }
 
