@@ -1,9 +1,9 @@
-// controllers/UsersController.js
+import crypto from 'crypto';
 import dbClient from '../utils/db';
-
-const crypto = require('crypto');
+import redisClient from '../utils/redis';
 
 class UsersController {
+  // Méthode pour créer un nouvel utilisateur
   static async postNew(req, res) {
     // Récupération des données du corps de la requête
     const { email, password } = req.body;
@@ -47,9 +47,39 @@ class UsersController {
       // Retourner le nouvel utilisateur avec l'email et l'id généré par MongoDB
       return res.status(201).json({ email, id });
     });
-    // Ajoutez une instruction return à la fin de la méthode sinon erreur eslint 
-    return null;
+
+    // Ajout d'une instruction de retour à la fin de la méthode
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+
+  // Méthode pour récupérer les informations de l'utilisateur actuel
+  static async getMe(req, res) {
+    // Récupération du token d'authentification depuis l'en-tête
+    const { 'x-token': token } = req.headers;
+
+    // Vérification de la présence du token
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Récupération de l'ID de l'utilisateur à partir du token dans Redis
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Récupération des informations de l'utilisateur à partir de l'ID
+    const user = await dbClient.db.collection('users').findOne({ _id: userId });
+
+    // Vérification de l'existence de l'utilisateur
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Retour des informations de l'utilisateur (email et ID)
+    return res.status(200).json({ email: user.email, id: user._id });
   }
 }
 
-module.exports = UsersController;
+// Export de la classe UsersController
+export default UsersController;
