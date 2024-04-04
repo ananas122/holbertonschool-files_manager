@@ -1,6 +1,6 @@
-import crypto from 'crypto';
-import dbClient from '../utils/db';
-import redisClient from '../utils/redis';
+const crypto = require('crypto');
+const dbClient = require('../utils/db');
+const redisClient = require('../utils/redis');
 
 class UsersController {
   // Méthode pour créer un nouvel utilisateur
@@ -82,4 +82,4 @@ class UsersController {
 }
 
 // Export de la classe UsersController
-export default UsersController;
+module.export = UsersController;
