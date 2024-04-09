@@ -1,9 +1,10 @@
-const crypto = require('crypto');
-const dbClient = require('../utils/db');
-const redisClient = require('../utils/redis');
+import sha1 from 'sha1';
+import { ObjectId } from 'mongodb';
+import redisClient from '../utils/redis';
+import dbClient from '../utils/db';
 
 class UsersController {
-  // Méthode pour créer un nouvel utilisateur
+  "Méthode pour créer un nouvel user"
   static async postNew(req, res) {
     // Récupération des données du corps de la requête
     const { email, password } = req.body;
@@ -53,33 +54,23 @@ class UsersController {
   }
 
   // Méthode pour récupérer les informations de l'utilisateur actuel
-  static async getMe(req, res) {
-    // Récupération du token d'authentification depuis l'en-tête
-    const { 'x-token': token } = req.headers;
+  static async getMe(request, response) {
+    // Recupere l auth token depuis a requete header
+    const token = request.headers['x-token'];
 
-    // Vérification de la présence du token
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Récupération de l'ID de l'utilisateur à partir du token dans Redis
+    // verifie l existence du token et de sa validité
     const userId = await redisClient.get(`auth_${token}`);
     if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return response.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Récupération des informations de l'utilisateur à partir de l'ID
-    const user = await dbClient.db.collection('users').findOne({ _id: userId });
-
-    // Vérification de l'existence de l'utilisateur
+    // Recup le user corresponda
+    const user = await dbClient.db.collection('users').findOne({ _id: new ObjectId(userId) });
     if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return response.status(401).json({ error: 'Unauthorized' });
     }
-
-    // Retour des informations de l'utilisateur (email et ID)
-    return res.status(200).json({ email: user.email, id: user._id });
+    return response.status(200).json({ id: user._id, email: user.email });
   }
 }
 
-// Export de la classe UsersController
-module.export = UsersController;
+export default UsersController;

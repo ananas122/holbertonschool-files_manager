@@ -1,4 +1,4 @@
-import dbClient from '../utils/db';
+const dbClient = require('../utils/db');
 
 class AppController {
   static async getStatus(req, res) {
