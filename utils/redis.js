@@ -1,37 +1,43 @@
-// Import du module nécessaire
 const redis = require('redis');
-
-// Création du client Redis
-const { createClient } = redis; // Utilisation de la déstructuration pour obtenir createClient
 
 class RedisClient {
   constructor() {
-    this.client = createClient();
-    this.client.connect().catch((error) => {
-      console.log(`Redis client not connected to the server: ${error.message}`);
-    });
-
-    this.client.on('error', (error) => {
-      console.log(`Redis client not connected to the server: ${error}`);
-    });
+    this.client = redis.createClient();
+    this.client.on('error', (error) => console.error(`Redis client error: ${error}`));
   }
 
   isAlive() {
-    return this.client.isOpen;
+    return this.client.connected;
   }
 
   async get(key) {
-    return this.client.get(key);
+    return new Promise((resolve, reject) => {
+      this.client.get(key, (err, reply) => {
+        if (err) reject(err);
+        else resolve(reply);
+      });
+    });
   }
 
   async set(key, value, duration) {
-    await this.client.set(key, value, { EX: duration });
+    return new Promise((resolve, reject) => {
+      this.client.setex(key, duration, value, (err, reply) => {
+        if (err) reject(err);
+        else resolve(reply);
+      });
+    });
   }
 
   async del(key) {
-    await this.client.del(key);
+    return new Promise((resolve, reject) => {
+      this.client.del(key, (err, reply) => {
+        if (err) reject(err);
+        else resolve(reply);
+      });
+    });
   }
 }
 
 const redisClient = new RedisClient();
+
 module.exports = redisClient;
